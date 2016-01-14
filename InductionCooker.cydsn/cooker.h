@@ -8,7 +8,7 @@
  * WHICH IS THE PROPERTY OF your company.
  *
  * ========================================
-*/
+ */
 
 /* [] END OF FILE */
 #include <project.h>
@@ -25,7 +25,7 @@
  * Addr byte
  * Cmd byte
  * Data bytes
-*/
+ */
 
 #define IH_ADDR 0x28
 
@@ -58,7 +58,7 @@
 
 #define INIT_BUF_LEN 9
 #define CTRL_BUF_LEN 4
-#define STATUS_BUF_LEN 5
+#define STATUS_BUF_LEN 14
 
 #define POWER_MIN 20
 #define POWER_MAX 80
@@ -66,31 +66,31 @@
 uint8 InitialBuffer[INIT_BUF_LEN];
 uint8 CtrlBuffer[CTRL_BUF_LEN];
 uint8 StatusBuffer[STATUS_BUF_LEN];
-
+uint8 PrevStatusBuffer[STATUS_BUF_LEN];
 // VoltageValue CurrentValue  TOPValue
- uint8 sensorData[3];
+uint8 sensorData[3];
 
 uint8 CURRENT_CMD;
 uint8 CMD_PARAM;
 
 
 enum {
-    Cooker_OK = 0b0000,
-    Cooker_Reserved = 0b0001,
-    Cooker_FAULT_ELECTRICAL = 0b0010, 
-    Cooker_FAULT_IGBT_OPEN = 0b0011,
-    Cooker_FAULT_IGBT_SHORT_OR_OVERHEAT = 0b0100,
-    Cooker_FAULT_Surface_OPEN = 0b0101,
-    Cooker_FAULT_Surface_SHORT_OR_OVERHEAT = 0b0110,
-    Cooker_FAULT_Surface_SENSOR_LOSE = 0b0111,
-    
+	Cooker_OK = 0b0000,
+	Cooker_Reserved = 0b0001,
+	Cooker_FAULT_ELECTRICAL = 0b0010,
+	Cooker_FAULT_IGBT_OPEN = 0b0011,
+	Cooker_FAULT_IGBT_SHORT_OR_OVERHEAT = 0b0100,
+	Cooker_FAULT_Surface_OPEN = 0b0101,
+	Cooker_FAULT_Surface_SHORT_OR_OVERHEAT = 0b0110,
+	Cooker_FAULT_Surface_SENSOR_LOSE = 0b0111,
+
 }FaultCode;
 
 enum {
-    POWER_OFF,
-    POWER_ON,
-    SET_POWER,
-    SET_FAN,
+	POWER_OFF,
+	POWER_ON,
+	SET_POWER,
+	SET_FAN,
 }CMD;
 
 
