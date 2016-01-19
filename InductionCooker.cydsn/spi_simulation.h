@@ -100,3 +100,5 @@ void quirk_reload();
 void quirk_off();
 
 void low_power_quirk();
+
+void spi_send();

@@ -155,3 +155,63 @@ void pack_from_raw_packet(struct spi_packet *packet, unsigned char *packet_raw, 
 
 	memcpy(packet->data, packet_raw + 4, size - 4);
 }
+
+void spi_send()
+{
+	struct spi_packet response;
+	CYBLE_GATT_HANDLE_VALUE_PAIR_T powerHandle;
+	uint32 i,j;
+	uint16 temp = 0;
+
+	/* orgin protocol */
+	response.header.vendor_h = 0x41;
+	response.header.vendor_l = 0x4B;
+
+	response.header.packet_len = 20;
+
+	/* fill key value pair */
+
+	temp = StatusBuffer[1] * 100;
+	response.data[0][0] = RSP_VOLTAGE_L;
+	response.data[0][1] = temp & 0xff;
+	response.data[1][0] = RSP_VOLTAGE_H;
+	response.data[1][1] = temp >> 8 & 0xff;
+
+	temp = StatusBuffer[2] * 100;
+	response.data[2][0] = RSP_CURRENT_L;
+	response.data[2][1] = temp & 0xff;
+	response.data[3][0] = RSP_CURRENT_H;
+	response.data[3][1] = temp >> 8 & 0xff;
+
+	temp = StatusBuffer[4] * 100;
+	response.data[4][0] = RSP_TEMPCOIL_L;
+	response.data[4][1] = temp & 0x00ff;
+	response.data[5][0] = RSP_TEMPCOIL_H;
+	response.data[5][1] = temp >> 8 & 0x00ff;
+
+	temp = StatusBuffer[5] * 100;
+	response.data[6][0] = RSP_TEMPSINK_L;
+	response.data[6][1] = temp & 0xff;
+	response.data[7][0] = RSP_TEMPSINK_H;
+	response.data[7][1] = temp >> 4 & 0xff;
+
+	/* checksum */
+	for (i = 0; i < STATUS_BUF_LEN; i++) {
+		for (j = 0; j < 2; j++) {
+			response.header.packet_sum += response.data[i][j];
+		}
+	}
+
+	powerHandle.attrHandle = CYBLE_HOT_PANNEL_SIMULATION_SERVICE_SPI_MISO_CHAR_HANDLE;
+	powerHandle.value.val = (unsigned char *)&response;
+	powerHandle.value.len = response.header.packet_len;
+	powerHandle.value.actualLen = response.header.packet_len;
+
+	CyBle_GattsNotification(cyBle_connHandle, &powerHandle);
+
+	memset(&response, 0, sizeof(struct spi_packet));
+
+	/* workround for transmission double check */
+    /* memcpy(PrevStatusBuffer, StatusBuffer, STATUS_BUF_LEN); */
+
+}
