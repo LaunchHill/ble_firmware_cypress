@@ -120,6 +120,8 @@ void StackEventHandler( uint32 eventCode, void *eventParam )
 		break;
 
 	case CYBLE_EVT_GAP_DEVICE_DISCONNECTED:
+        CURRENT_CMD = POWER_OFF;
+		quirk_off();
 		CyBle_GappStartAdvertisement(CYBLE_ADVERTISING_FAST);
 		connected = 0;
 		break;
