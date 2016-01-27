@@ -1,51 +1,39 @@
-/* ========================================
- *
- * Copyright YOUR COMPANY, THE YEAR
- * All Rights Reserved
- * UNPUBLISHED, LICENSED SOFTWARE.
- *
- * CONFIDENTIAL AND PROPRIETARY INFORMATION
- * WHICH IS THE PROPERTY OF your company.
- *
- * ========================================
- */
-
-/* [] END OF FILE */
 #include "cooker.h"
+static uint32 Cooker_Send(uint8 *data, uint32 count);
+static uint32 Cooker_Receive(uint8 *data, uint32 count);
 
+//static void Cooker_SendInitialPacket();
+static void Cooker_ReceiveStatusPacket();
+static void ih_control_set(uint8 bit, uint8 enabled);
+
+
+uint8 cooker_status = COOKER_READY;
 
 //initial packet
 uint8 InitialBuffer[INIT_BUF_LEN] = {IH_CMD_INIT, 0x11,0x22,0x33,0x44,0x44,0x55,0x66,0x77};
 
 //control cmd buffer
-uint8 CtrlBuffer[CTRL_BUF_LEN] = {IH_CMD_READ_WRITE, 0x96, 0x01, 0x00};
+uint8 CtrlBuffer[CTRL_BUF_LEN] = {IH_CMD_READ_WRITE, 0xd2, 0x01, 0x00};
 
 //read back status buffer
 uint8 StatusBuffer[STATUS_BUF_LEN] = {};
 
-uint8 PrevStatusBuffer[STATUS_BUF_LEN] = {};
 
-void Cooker_SendInitialPacket()
+void debug_led(uint8_t enabled)
 {
-	//    I2C_I2CMasterSendStart(IH_BOOSTRAP_WRITE, );
-	Cooker_Send(InitialBuffer, 10);
+    enabled == 0 ? Debug_led_Write(1) : Debug_led_Write(0); 
 }
 
-
-void Cooker_ReceiveStatusPacket()
+static void Cooker_ReceiveStatusPacket()
 {
 	uint8 s = 0x10;
-	//    I2C_I2CMasterWriteByte(0x10);
-	//    I2C_I2CMasterWriteByte(0x5110);
+    
 	Cooker_Send(&s, 1);
 	CyDelay(5);
 	Cooker_Receive(StatusBuffer, STATUS_BUF_LEN);
-
 }
 
-//#if 0
-//low level transfer api
-uint32 Cooker_Send(uint8 *data, uint32 count)
+static uint32 Cooker_Send(uint8 *data, uint32 count)
 {
 
 	uint32 status = TRANSFER_ERROR;
@@ -74,7 +62,7 @@ uint32 Cooker_Send(uint8 *data, uint32 count)
 
 }
 
-uint32 Cooker_Receive(uint8 *data, uint32 count)
+static uint32 Cooker_Receive(uint8 *data, uint32 count)
 {
 
 	uint32 status = TRANSFER_ERROR;
@@ -106,50 +94,80 @@ uint32 Cooker_Receive(uint8 *data, uint32 count)
 
 	return (status);
 }
-//#endif
 
-
-
-//cooker protect (1): overheat
-//               (2): no pan
-//               (3): other error
-void Cooker_Protect();
-
-void cmd_loop()
+static void bit_set(uint8 *data, uint8 bit)
 {
-	//    CURRENT_CMD = SET_POWER;
+    *data |= 1 << bit;
+}
 
+static void bit_clear(uint8 *data, uint8 bit)
+{
+    *data &= ~(1 << bit);
+}
+
+static void ih_control_set(uint8 bit, uint8 enabled)
+{
+    uint8 low = CtrlBuffer[IH_ControlSet_POS] & 0xf;
+    uint8 tmp;
+    if (enabled) {
+        bit_set(&low, bit);
+    } else {
+        bit_clear(&low, bit);
+    }
+    tmp = ((~low << 4) & 0xf0) | low;
+    
+    CtrlBuffer[IH_ControlSet_POS] =  tmp;
+}
+
+void set_beep(uint8 enabled)
+{        
+    ih_control_set(BIT_IH_ControlSet_BEEP, enabled);    
+}
+
+void set_fan(uint8 enabled)
+{        
+    ih_control_set(BIT_IH_ControlSet_FAN, enabled);   
+}
+
+void set_power(uint16 power)
+{ 
+    CtrlBuffer[2] = 0x10;
+    CtrlBuffer[IH_PowerSetH_POS] = power / 10 / 25;
+}
+
+void cooker_send()
+{
+    Cooker_Send(CtrlBuffer, CTRL_BUF_LEN);
+	CyDelay(3);
+	Cooker_ReceiveStatusPacket();
+	CyDelay(5);
+}
+
+#if 0
+void cooker_process()
+{ 
 	switch(CURRENT_CMD) {
+
 	case POWER_OFF:
-		CtrlBuffer[IH_ControlSet_POS] = 0x96;
-		CtrlBuffer[IH_ControlSet_POS] = 0xd2;
 		CtrlBuffer[IH_PowerSetL_POS] = 0x01;
+        CtrlBuffer[IH_PowerSetL_POS] = 0x10;
+
 		CtrlBuffer[IH_PowerSetH_POS] = 0x00;
 
 		break;
 
 	case POWER_ON:
-		CtrlBuffer[IH_ControlSet_POS] = 0x96;
 		CtrlBuffer[IH_PowerSetL_POS] = 0x01;
+        		CtrlBuffer[IH_PowerSetL_POS] = 0x10;
+
 		CtrlBuffer[IH_PowerSetH_POS] = 0x00;
+
 		break;
 
 	case SET_POWER:
-		CtrlBuffer[IH_ControlSet_POS] = 0xb4;
 		CtrlBuffer[IH_PowerSetL_POS] = 0x10;
-
 		CtrlBuffer[IH_PowerSetH_POS] = CMD_PARAM;
-		/*
-		  if (CMD_PARAM > POWER_MAX)
-		  CMD_PARAM = POWER_MAX;
 
-		  if (CMD_PARAM < POWER_MIN);
-		  CMD_PARAM = POWER_MIN;
-		*/
-		//            CtrlBuffer[IH_PowerSetH_POS] = 0x20;
-		break;
-
-	case SET_FAN:
 		break;
 
 	default:
@@ -159,11 +177,6 @@ void cmd_loop()
 	Cooker_Send(CtrlBuffer, CTRL_BUF_LEN);
 	CyDelay(3);
 	Cooker_ReceiveStatusPacket();
-	CyDelay(100);
-	//Fault Protect
-	/*
-	  if ()
-	  {
-	  }
-	*/
+	CyDelay(5);
 }
+#endif

@@ -12,21 +12,7 @@
 
 /* [] END OF FILE */
 #include "project.h"
-
-struct packet_header {
-	uint8 vendor_h;
-	uint8 vendor_l;
-	uint8 packet_len;
-	char packet_sum;
-};
-
-struct spi_packet {
-	struct packet_header header;
-
-	/* max 20 key value paires */
-	uint8 data[20][2];
-};
-
+#define KEY_BASE         0x22
 #define CMD_POWER_H      0x22
 #define CMD_POWER_L      0x23
 #define CMD_PERIPHERAL_H 0x24
@@ -35,6 +21,7 @@ struct spi_packet {
 #define CMD_GETDEFAULTS  0x27
 #define CMD_LOG          0x28
 #define CMD_ID           0x29
+
 #define CLB_CURBASE_H    0x32
 #define CLB_CURBASE_L    0x33
 #define CLB_CURFACT_H    0x34
@@ -43,6 +30,7 @@ struct spi_packet {
 #define CLB_VOLBASE_L    0x37
 #define CLB_VOLFACT_H    0x38
 #define CLB_VOLFACT_L    0x39
+
 #define LMT_RSPLENGTH    0x42
 #define LMT_CURRENT_H    0x44
 #define LMT_CURRENT_L    0x45
@@ -54,6 +42,7 @@ struct spi_packet {
 #define LMT_TEMPSINK_L   0x4b
 #define LMT_VOLTAGE_H    0x4c //?
 #define LMT_VOLTAGE_L    0x4d
+
 #define RSP_ERROR_H      0x62
 #define RSP_ERROR_L      0x63
 #define RSP_VOLTAGE_H    0x64
@@ -72,6 +61,25 @@ struct spi_packet {
 #define RSP_VERSION_L    0x73
 #define RSP_CLOCK_H      0x74
 #define RSP_CLOCK_L      0x75
+#define KEY_TOP          0x75
+
+#define CMD_PERIPHERAL_FAN   0x01
+#define CMD_PERIPHERAL_LIGHT  0x02
+#define CMD_PERIPHERAL_BEEP  0x04
+
+struct packet_header {
+	uint8 vendor_h;
+	uint8 vendor_l;
+	uint8 packet_len;
+	char packet_sum;
+};
+
+struct spi_packet {
+	struct packet_header header;
+
+	/* max 20 key value paires */
+    uint8 data[20][2];    
+};
 
 //global
 struct spi_packet spi_packet;
@@ -80,25 +88,18 @@ void cmd_execute_simulation(struct spi_packet *packet);
 int packet_validation(struct spi_packet *packet);
 void pack_from_raw_packet(struct spi_packet *packet,uint8 *packet_raw, int size);
 
+void update_state(struct spi_packet *packet);
+
 
 /* seconds set power on 1000Walt */
 struct quirk {
-	int8 QUIRK_ON;
-
-	int8 QUIRK_OFF;
-	int8 CURRENT_ON;
-	int8 CURRENT_OFF;
+    uint8 timeout;
+    uint8 drink;
 };
 
 struct quirk QUIRK;
 
+void quirk_start(uint16 power);
+void quirk_stop();
+void spi_send_response();
 
-void quirk_reset(int duration);
-
-void quirk_reload();
-
-void quirk_off();
-
-void low_power_quirk();
-
-void spi_send();

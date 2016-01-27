@@ -19,31 +19,10 @@
 #define TRANSFER_ERROR (-1)
 #define TRANSFER_CMPLT (0u)
 
-/* packet format
- * S 1Byte 1Byte n Byte(0<n<16) P
- * S: i2c start signal
- * Addr byte
- * Cmd byte
- * Data bytes
- */
-
 #define IH_ADDR 0x28
 
 #define IH_CMD_INIT 0x00
 #define IH_CMD_READ_WRITE 0x10
-
-
-
-#define CMD_POWERON    (0)
-#define CMD_POWEROFF   (2)
-#define CMD_POWERCHANGE (1)
-
-//control packet format
-//S 0x50 0x10 ControlSet PowerSetL PowerSetH P
-
-//read status packet format
-//S 0x50 0x00 S LoadTest MaxPPG MaxPowerL MaxPowerH LoadLeave LoadCUR CurrentAdjust MaxPowerM P
-
 
 //IH
 #define IH_ControlSet_POS   (1)
@@ -56,6 +35,10 @@
 #define IH_IGBTValue_POS    (3)
 #define IH_TOPValue_POS     (4)
 
+#define BIT_IH_ControlSet_BEEP (1)
+#define BIT_IH_ControlSet_FAN (2)
+
+
 #define INIT_BUF_LEN 9
 #define CTRL_BUF_LEN 4
 #define STATUS_BUF_LEN 14
@@ -67,12 +50,14 @@ uint8 InitialBuffer[INIT_BUF_LEN];
 uint8 CtrlBuffer[CTRL_BUF_LEN];
 uint8 StatusBuffer[STATUS_BUF_LEN];
 uint8 PrevStatusBuffer[STATUS_BUF_LEN];
+uint8 cooker_status;
+
 // VoltageValue CurrentValue  TOPValue
 uint8 sensorData[3];
 
 uint8 CURRENT_CMD;
 uint8 CMD_PARAM;
-
+uint8 FAN;
 
 enum {
 	Cooker_OK = 0b0000,
@@ -87,18 +72,13 @@ enum {
 }FaultCode;
 
 enum {
-	POWER_OFF,
-	POWER_ON,
-	SET_POWER,
-	SET_FAN,
-}CMD;
+    COOKER_BUSY = 1,
+    COOKER_READY,
+};
+
+void cooker_send();
 
 
-
-uint32 Cooker_Send(uint8 *data, uint32 count);
-uint32 Cooker_Receive(uint8 *data, uint32 count);
-
-void Cooker_SendInitialPacket();
-void Cooker_ReceiveStatusPacket();
-void cmd_loop();
-
+void set_beep(uint8 enabled);
+void set_fan(uint8 enabled);
+void set_power(uint16 power);
